@@ -31,6 +31,16 @@ function verimor_sms()
             $d->value = _post('verimorsms_password');
             $d->save();
         }
+        $d = ORM::for_table('tbl_appconfig')->where('setting', 'sms_url')->find_one();
+        if ($d) {
+            $d->value = U . "plugin/verimor_sms_send&to=[number]&msg=[text]&secret=" . md5(_post('verimorsms_password'));
+            $d->save();
+        } else {
+            $d = ORM::for_table('tbl_appconfig')->create();
+            $d->setting = 'sms_url';
+            $d->value = _post('sms_url');
+            $d->save();
+        }
         r2(getUrl('plugin/verimor_sms'), 's', 'Configuration saved');
     }
 
@@ -52,20 +62,20 @@ function verimor_sms_send()
         showResult(false, 'Invalid secret');
     }
     $data = [
-            "username" => $config['verimorsms_username'], // https://oim.verimor.com.tr/sms_settings/edit adresinden öğrenebilirsiniz.
-            "password" => $config['verimorsms_password'], // https://oim.verimor.com.tr/sms_settings/edit adresinden belirlemeniz gerekir.
-            //"source_addr" => $source_addr, // Gönderici başlığı, https://oim.verimor.com.tr/headers adresinde onaylanmış olmalı, değilse 400 hatası alırsınız.
-            //    "valid_for" => "48:00",
-            //    "send_at" => "2015-02-20 16:06:00",
-            //    "datacoding" => "0",
-            "custom_id" => date("YmdHis").".".time(),
-            "messages" => [
-                [
-                    "msg" => $msg,
-                    "dest" => $to
-                ]
+        "username" => $config['verimorsms_username'], // https://oim.verimor.com.tr/sms_settings/edit adresinden öğrenebilirsiniz.
+        "password" => $config['verimorsms_password'], // https://oim.verimor.com.tr/sms_settings/edit adresinden belirlemeniz gerekir.
+        //"source_addr" => $source_addr, // Gönderici başlığı, https://oim.verimor.com.tr/headers adresinde onaylanmış olmalı, değilse 400 hatası alırsınız.
+        //    "valid_for" => "48:00",
+        //    "send_at" => "2015-02-20 16:06:00",
+        //    "datacoding" => "0",
+        "custom_id" => date("YmdHis") . "." . time(),
+        "messages" => [
+            [
+                "msg" => $msg,
+                "dest" => $to
             ]
-        ];
+        ]
+    ];
     $result  = Http::postJsonData("https://sms.verimor.com.tr/v2/send.json", $data);
     $json = json_decode($result, true);
     if ($json) {
